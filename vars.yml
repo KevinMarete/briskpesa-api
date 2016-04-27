@@ -24,7 +24,7 @@ wsgi_module: briskpesa.wsgi
 pythonpath: "{{ install_root }}/{{ project_name }}/briskpesa/briskpesa"
 
 # the git repository URL for the project
-project_repo: https://andati@bitbucket.org/andati/briskpesa.git
+project_repo: git@bitbucket.org:andati/briskpesa.git
 
 # a private key that has access to the repository URL
 ssh_private_key: ~/.ssh/id_rsa
