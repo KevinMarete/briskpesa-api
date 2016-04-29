@@ -37,7 +37,7 @@ ssh_private_key: ~/.ssh/id_rsa
 static_root: "{{ install_root }}/{{ project_name }}/static"
 
 # the dns name or names (space separated) for your server
-server_name: briskpesa.com www.briskpesa.com
+server_name: briskpesa.com
 
 # database setup. Note that because this playbook doesn't touch the default 
 # postgres pg_hba.conf file, we use local password-based authentication for
