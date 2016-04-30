@@ -7,6 +7,8 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     # ex: /onlinecheckout
     url(r'^onlinecheckout$', views.onlinecheckout, name='onlinecheckout'),
-    # ex: /testonlinecheckout
-    url(r'^testonlinecheckout$', views.onlinecheckout, name='testonlinecheckout'),    
+    # ex: /checkout
+    url(r'^checkout$', views.process_checkout, name='checkout'),
+    # ex: /checkout
+    url(r'^poll$', views.poll, name='poll'),
 ]
