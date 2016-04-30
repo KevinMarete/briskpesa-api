@@ -63,3 +63,4 @@ target/
 # backup things
 *~
 *.retry
+migrations/
