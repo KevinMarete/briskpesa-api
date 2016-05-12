@@ -36,8 +36,9 @@ def process_checkout(request):
 		# Get data
 		phone = request.POST['phone']
 		amount = request.POST['amount']
+		vendor_id = request.POST.get('id', 1)
 
-		vendor = Vendor.objects.get(pk=1)
+		vendor = Vendor.objects.get(pk=int(vendor_id))
 		transaction = Transaction(vendor=vendor, order_id=1, msisdn=phone, amount=int(amount))
 		transaction.save()
 
