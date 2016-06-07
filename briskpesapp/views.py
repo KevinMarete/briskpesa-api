@@ -52,13 +52,19 @@ def process_checkout(request):
 		if phone.strip() == '' or amount == 0 or api_key.strip() == '':
 			return JsonResponse({'status': False, 'desc': "Invalid/missing parameters"})
 
+		vendor = None
 		try:
 			vendor = Vendor.objects.get(api_key=api_key)
 		except Vendor.DoesNotExist:
 			return JsonResponse({'status': False, 'desc': "Invalid API key"})			
 
-		transaction = Transaction(vendor=vendor, order_id=1, msisdn=phone, amount=int(amount))
-		transaction.save()
+		transaction = None
+		try:
+			transaction = Transaction(vendor=vendor, order_id=1, msisdn=phone, amount=int(amount))
+			transaction.save()
+		except Exception as e:
+			logger.error("Error ocurred saving the transaction" + str(e))
+			return JsonResponse({'status': False, 'desc': "Error ocurred saving the transaction"})
 
 		res = send_payment_request(phone, amount, transaction.id, vendor.short_name)
 		if res[0] == -1:
@@ -127,11 +133,11 @@ def poll(request):
 def demo_checkout(request):
 	if request.method == 'POST':
 		# Get data
-		phone = request.POST.get('phone','')
-		amount = request.POST.get('amount',0)
+		phone = request.POST.get("phone","")
+		amount = request.POST.get("amount",0)
 
-		url = 'https://briskpesa.com/checkout'
-		api_key = '490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4'
+		url = "https://briskpesa.com/checkout"
+		api_key = "490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4"
 		payload = {"phone": phone, "amount": amount, "api_key": api_key}
 		headers = {"Content-Type": "application/json"}
 
