@@ -1,11 +1,13 @@
 from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from models import Transaction, Vendor
 import logging
 from django.utils import timezone
 import datetime
 from checkout import send_payment_request, send_confirm_request, parser_process_callback
+import json
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +36,27 @@ def onlinecheckout(request):
 def process_checkout(request):
 	if request.method == 'POST':
 		# Get data
-		phone = request.POST['phone']
-		amount = request.POST['amount']
-		vendor_id = request.POST.get('id', 1)
 
-		vendor = Vendor.objects.get(pk=int(vendor_id))
+		if request.META.get('CONTENT_TYPE').lower() == "application/json":
+			#json
+			data = json.loads(request.body)
+			phone = data.get('phone','')
+			amount = data.get('amount',0)
+			api_key = data.get('api_key','')
+		else:
+			#form
+			phone = request.POST.get('phone','')
+			amount = request.POST.get('amount',0)
+			api_key = request.POST.get('api_key','')
+
+		if phone.strip() == '' or amount == 0 or api_key.strip() == '':
+			return JsonResponse({'status': False, 'desc': "Invalid/missing parameters"})
+
+		try:
+			vendor = Vendor.objects.get(api_key=api_key)
+		except Vendor.DoesNotExist:
+			return JsonResponse({'status': False, 'desc': "Invalid API key"})			
+
 		transaction = Transaction(vendor=vendor, order_id=1, msisdn=phone, amount=int(amount))
 		transaction.save()
 
@@ -68,11 +86,31 @@ def process_checkout(request):
 def poll(request):
 	if request.method == 'POST':
 		# Get data
-		trans_id = request.POST['trans_id']
-		transaction = Transaction.objects.get(pk=int(trans_id))
-		if transaction == None:
-			return JsonResponse({'status': 2, 'desc': None})
-		elif transaction.trx_status == 0:
+		if request.META.get('CONTENT_TYPE').lower() == "application/json":
+			#json
+			data = json.loads(request.body)
+			trans_id = data.get('trans_id',0)
+			api_key = data.get('api_key','')
+		else:
+			#form
+			trans_id = request.POST.get('trans_id',0)
+			api_key = request.POST.get('api_key','')
+
+
+		if trans_id == 0 or api_key.strip() == '':
+			return JsonResponse({'status': False, 'desc': "Invalid/missing parameters"})
+
+		try:
+			vendor = Vendor.objects.get(api_key=api_key)
+		except Vendor.DoesNotExist:
+			return JsonResponse({'status': False, 'desc': "Invalid API key"})
+
+		try:
+			transaction = Transaction.objects.get(pk=int(trans_id), vendor_id=vendor.id)
+		except Transaction.DoesNotExist:
+			return JsonResponse({'status': 2, 'desc': "Transaction does not exist"})
+		
+		if transaction.trx_status == 0:
 			return JsonResponse({'status': 0, 'mpesa_code': transaction.mpesa_trx_id})
 		elif transaction.trx_status == 1:
 			return JsonResponse({'status': transaction.trx_status, 'desc': transaction.mpesa_desc})
@@ -82,4 +120,41 @@ def poll(request):
 				return JsonResponse({'status': 1, 'desc': "Transaction expired"})
 			else:
 				return JsonResponse({'status': transaction.trx_status})
+	return HttpResponse("GET: Echo back")
+
+
+@csrf_exempt
+def demo_checkout(request):
+	if request.method == 'POST':
+		# Get data
+		phone = request.POST.get('phone','')
+		amount = request.POST.get('amount',0)
+
+		url = 'https://briskpesa.com/checkout'
+		api_key = '490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4'
+		payload = {'phone': phone, 'amount': amount, 'api_key': api_key}
+		headers = {'content-type': 'application/json'}
+
+		r = requests.post(url, data=json.dumps(payload), headers=headers)
+		return JsonResponse(json.loads(r.text))
+		
+
+	return HttpResponse("GET: Echo back")
+
+
+@csrf_exempt
+def demo_poll(request):
+	if request.method == 'POST':
+		# Get data
+		trans_id = data.get('trans_id',0)
+
+		url = 'https://briskpesa.com/poll'
+		api_key = '490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4'
+		payload = {'phone': phone, 'amount': amount, 'api_key': api_key}
+		headers = {'content-type': 'application/json'}
+
+		r = requests.post(url, data=json.dumps(payload), headers=headers)
+		return JsonResponse(json.loads(r.text))
+		
+
 	return HttpResponse("GET: Echo back")

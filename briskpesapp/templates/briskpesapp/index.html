@@ -105,7 +105,7 @@
 			
 			// send ajax request
 			$.ajax({
-			    url: "/checkout",
+			    url: "/demo-checkout",
 			    type: "POST",
 			    data: { phone: phone, amount: amount},
 			    complete: function(data) {
@@ -136,7 +136,7 @@
 
 		function doPoll(trans_id){
 			$.ajax({
-			    url: "/poll",
+			    url: "/demo-poll",
 			    type: "POST",
 			    data: { trans_id: trans_id },
 			    complete: function(data) {
