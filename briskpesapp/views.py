@@ -157,7 +157,7 @@ def demo_poll(request):
 		# Get data
 		trans_id = request.POST.get("trans_id", 0)
 
-		url = 'https:/briskpesa.com/poll'
+		url = 'https://briskpesa.com/poll'
 		api_key = '490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4'
 		payload = {"trans_id": trans_id, "api_key": api_key}
 		headers = {"Content-Type": "application/json"}
