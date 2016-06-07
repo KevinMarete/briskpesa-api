@@ -145,7 +145,6 @@ def demo_checkout(request):
 		headers = {"Content-Type": "application/json"}
 
 		r = requests.post(url, data=json.dumps(payload), headers=headers)
-		print r.text
 		return JsonResponse(json.loads(r.text))
 		
 
@@ -156,7 +155,7 @@ def demo_checkout(request):
 def demo_poll(request):
 	if request.method == 'POST':
 		# Get data
-		trans_id = data.get('trans_id',0)
+		trans_id = request.POST.get("trans_id", 0)
 
 		url = 'https:/briskpesa.com/poll'
 		api_key = '490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4'
