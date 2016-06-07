@@ -58,15 +58,15 @@ def process_checkout(request):
 		except Vendor.DoesNotExist:
 			return JsonResponse({'status': False, 'desc': "Invalid API key"})
 		except Exception as e:
-			logger.error("Error ocurred getting vendor" + str(e))
+			logger.error("Error ocurred getting vendor " + str(e))
+			return JsonResponse({'status': False, 'desc': "Invalid API key"})
 
 		transaction = None
-		logger.info("Here!")
 		try:
 			transaction = Transaction(vendor=vendor, order_id=1, msisdn=phone, amount=int(amount))
 			transaction.save()
 		except Exception as e:
-			logger.error("Error ocurred saving the transaction" + str(e))
+			logger.error("Error ocurred saving the transaction " + str(e))
 			return JsonResponse({'status': False, 'desc': "Error ocurred saving the transaction"})
 
 		res = send_payment_request(phone, amount, transaction.id, vendor.short_name)
