@@ -132,10 +132,11 @@ def demo_checkout(request):
 
 		url = 'https://briskpesa.com/checkout'
 		api_key = '490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4'
-		payload = {'phone': phone, 'amount': amount, 'api_key': api_key}
-		headers = {'content-type': 'application/json'}
+		payload = {"phone": phone, "amount": amount, "api_key": api_key}
+		headers = {"Content-Type": "application/json"}
 
 		r = requests.post(url, data=json.dumps(payload), headers=headers)
+		print r.text
 		return JsonResponse(json.loads(r.text))
 		
 
@@ -148,10 +149,10 @@ def demo_poll(request):
 		# Get data
 		trans_id = data.get('trans_id',0)
 
-		url = 'https://briskpesa.com/poll'
+		url = 'https:/briskpesa.com/poll'
 		api_key = '490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4'
-		payload = {'phone': phone, 'amount': amount, 'api_key': api_key}
-		headers = {'content-type': 'application/json'}
+		payload = {"trans_id": trans_id, "api_key": api_key}
+		headers = {"Content-Type": "application/json"}
 
 		r = requests.post(url, data=json.dumps(payload), headers=headers)
 		return JsonResponse(json.loads(r.text))
