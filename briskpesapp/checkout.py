@@ -178,7 +178,7 @@ def encryptPassword(timestamp):
 def send_payment_request(msisdn, amount, reqid, refid):
     # build the xml request
     xml_string = build_payment_xml(msisdn, reqid, refid, amount)
-    logger.info("XML payment request " + xml_string)
+    logger.info("Payment request XML: " + xml_string)
     xml_resp = ""
     try:
         req = urllib2.Request(url=MPESA_CHECKOUT_URL, data=xml_string, headers={'Content-Type': 'application/xml'})
@@ -189,6 +189,8 @@ def send_payment_request(msisdn, amount, reqid, refid):
             print "Bad http status code: ", str(resp.getcode())
     except Exception as e:
          print "Error ", str(e)
+
+    logger.info("Payment response XML: " + xml_resp)
     if (xml_resp != ""):
        p = parser_process_checkout_response(xml_resp)
        return p.RETURN_CODE, p.DESCRIPTION, p.TRX_ID, p.ENC_PARAMS, p.CUST_MSG
@@ -265,7 +267,7 @@ def build_status_xml(trx_id):
 def send_confirm_request(trx_id):
     # build the xml request
     xml_string = build_confirm_xml(trx_id)
-    logger.info("XML confirm request " + xml_string)
+    logger.info("Confirm request XML: " + xml_string)
     xml_resp = ""
     try:
         req = urllib2.Request(url=MPESA_CHECKOUT_URL, data=xml_string, headers={'Content-Type': 'application/xml'})
@@ -276,6 +278,8 @@ def send_confirm_request(trx_id):
             print "Bad http status code: ", str(resp.getcode())
     except Exception as e:
          print "Error ", str(e)
+
+    logger.info("Confirm response XML: " + xml_resp)
     if (xml_resp != ""):
        p = parser_confirm_transaction_response(xml_resp)
        return p.RETURN_CODE, p.DESCRIPTION, p.TRX_ID
