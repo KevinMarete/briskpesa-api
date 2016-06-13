@@ -6,6 +6,8 @@ import datetime
 import base64
 import hashlib
 
+logger = logging.getLogger(__name__)
+
 MERCHANT_ID = "656873"
 PASS_KEY = "12f57a17731e3c4be06836adfbdfe2550dfd440bc8cf3e378415f237ce6494f6"
 CALLBACK_URL = "https://briskpesa.com/onlinecheckout"
@@ -176,6 +178,7 @@ def encryptPassword(timestamp):
 def send_payment_request(msisdn, amount, reqid, refid):
     # build the xml request
     xml_string = build_payment_xml(msisdn, reqid, refid, amount)
+    logger.info("XML payment request " + xml_string)
     xml_resp = ""
     try:
         req = urllib2.Request(url=MPESA_CHECKOUT_URL, data=xml_string, headers={'Content-Type': 'application/xml'})
