@@ -265,6 +265,7 @@ def build_status_xml(trx_id):
 def send_confirm_request(trx_id):
     # build the xml request
     xml_string = build_confirm_xml(trx_id)
+    logger.info("XML confirm request " + xml_string)
     xml_resp = ""
     try:
         req = urllib2.Request(url=MPESA_CHECKOUT_URL, data=xml_string, headers={'Content-Type': 'application/xml'})
