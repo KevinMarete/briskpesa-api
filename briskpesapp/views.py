@@ -8,6 +8,8 @@ import datetime
 from checkout import send_payment_request, send_confirm_request, parser_process_callback
 import json
 import requests
+import hashlib
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +166,30 @@ def demo_poll(request):
 
 		r = requests.post(url, data=json.dumps(payload), headers=headers)
 		return JsonResponse(json.loads(r.text))
+		
+
+	return HttpResponse("GET: Echo back")
+
+
+@csrf_exempt
+def gen_key(request):
+	if request.method == 'POST':
+		# Get data
+		if request.META.get('CONTENT_TYPE').lower() == "application/json":
+			#json
+			data = json.loads(request.body)
+			api_key = data.get('api_key','')
+		else:
+			#form
+			api_key = request.POST.get('api_key','')
+
+		try:
+			vendor = Vendor.objects.get(api_key=api_key, id = 1)
+		except Vendor.DoesNotExist:
+			return JsonResponse({'status': False, 'desc': "Invalid API key"})
+
+		new_key = hashlib.sha256(os.urandom(128)).hexdigest()
+		return JsonResponse({'status': True, 'key': new_key, 'desc': 'Ok'})
 		
 
 	return HttpResponse("GET: Echo back")

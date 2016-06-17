@@ -15,4 +15,6 @@ urlpatterns = [
     url(r'^demo-checkout$', views.demo_checkout, name='demo-checkout'),
     # ex: /demo-poll
     url(r'^demo-poll$', views.demo_poll, name='demo-poll'),
+    # ex: /gen-key
+    url(r'^gen-key$', views.gen_key, name='gen-key'),
 ]
