@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from models import Transaction, Vendor
+from utils import is_valid_phone, sanitize_phone
 import logging
 from django.utils import timezone
 import datetime
@@ -51,8 +52,20 @@ def process_checkout(request):
 			amount = request.POST.get('amount',0)
 			api_key = request.POST.get('api_key','')
 
-		if phone.strip() == '' or amount == 0 or api_key.strip() == '':
+		phone = phone.strip()
+		if phone == '' or amount == 0 or api_key.strip() == '':
 			return JsonResponse({'status': False, 'desc': "Invalid/missing parameters"})
+
+		if is_valid_phone(phone) == False:
+			return JsonResponse({'status': False, 'desc': "Invalid phone number"})
+
+		if amount.isnumeric() == False:
+			return JsonResponse({'status': False, 'desc': "Invalid amount"})
+
+		if int(amount) < 10:
+			return JsonResponse({'status': False, 'desc': "Amount must be greater than 10"})
+
+		phone = sanitize_phone(phone)
 
 		vendor = None
 		try:
@@ -62,6 +75,9 @@ def process_checkout(request):
 		except Exception as e:
 			logger.error("Error ocurred getting vendor " + str(e))
 			return JsonResponse({'status': False, 'desc': "Invalid API key"})
+
+		if vendor.is_active == False:
+			return JsonResponse({'status': False, 'desc': "Vendor has been deactivated"})
 
 		transaction = None
 		try:

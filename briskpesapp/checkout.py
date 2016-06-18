@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 MERCHANT_ID = "656873"
 PASS_KEY = "12f57a17731e3c4be06836adfbdfe2550dfd440bc8cf3e378415f237ce6494f6"
-CALLBACK_URL = "https://api.briskpesa.com/onlinecheckout"
+CALLBACK_URL = "https://api.briskpesa.com/v1/onlinecheckout"
 MPESA_CHECKOUT_URL = "https://safaricom.co.ke/mpesa_online/lnmo_checkout_server.php?wsdl"
 
 class ProcessCheckOutResponseHandler(xml.sax.ContentHandler):
