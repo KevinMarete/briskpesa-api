@@ -19,10 +19,10 @@ server {
     ssl_prefer_server_ciphers on;
     
     location / {
-            proxy_pass http://127.0.0.1:8000;
-            proxy_set_header X-Forwarded-Host $server_name;
-            proxy_set_header X-Real-IP $remote_addr;
-            add_header P3P 'CP="ALL DSP COR PSAa PSDa OUR NOR ONL UNI COM NAV"';
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Real-IP $remote_addr;
+        add_header P3P 'CP="ALL DSP COR PSAa PSDa OUR NOR ONL UNI COM NAV"';
     }
 }
 
@@ -66,10 +66,24 @@ server {
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }   
 
-        location / {
-            proxy_pass http://127.0.0.1:8000;
-            proxy_set_header X-Forwarded-Host $server_name;
-            proxy_set_header X-Real-IP $remote_addr;
-            add_header P3P 'CP="ALL DSP COR PSAa PSDa OUR NOR ONL UNI COM NAV"';
-        }
+    location /assets {
+        alias /usr/share/nginx/html/assets;
+    }
+
+    location / {
+        index index.php;
+        try_files $uri $uri/ index.php;
+        fastcgi_pass unix:/var/run/php5-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    error_page 404 /40x.html;
+        location = /40x.html {
+    }
+
+    error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+    }
 }

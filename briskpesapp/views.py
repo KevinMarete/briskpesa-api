@@ -142,11 +142,7 @@ def poll(request):
 		elif transaction.trx_status == 1:
 			return JsonResponse({'status': transaction.trx_status, 'desc': transaction.mpesa_desc})
 		else:
-			diff = timezone.make_aware(datetime.datetime.now(), timezone.get_default_timezone()) - transaction.request_time
-			if diff.seconds > 90: # 1 and 1/2 minutes, assume failed
-				return JsonResponse({'status': 1, 'desc': "Transaction expired"})
-			else:
-				return JsonResponse({'status': transaction.trx_status})
+			return JsonResponse({'status': transaction.trx_status, 'desc': "Transaction Pending"})
 	return HttpResponse("GET: Echo back")
 
 
