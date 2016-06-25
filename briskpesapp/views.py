@@ -6,7 +6,7 @@ from utils import is_valid_phone, sanitize_phone
 import logging
 from django.utils import timezone
 import datetime
-from checkout import send_payment_request, send_confirm_request, parser_process_callback
+from checkout import send_payment_request, send_confirm_request, send_status_request, parser_process_callback
 import json
 import requests
 import hashlib
@@ -14,8 +14,6 @@ import os
 
 logger = logging.getLogger(__name__)
 
-def index(request):
-    return render(request, 'briskpesapp/index.html')
 
 @csrf_exempt
 def onlinecheckout(request):
@@ -26,6 +24,7 @@ def onlinecheckout(request):
 			transaction = Transaction.objects.get(pk=int(p.MERCHANT_TRANSACTION_ID))
 			transaction.return_code = p.RETURN_CODE
 			transaction.mpesa_desc = p.DESCRIPTION
+			transaction.process_time = timezone.now()
 			if p.TRX_STATUS == "Success":
 				transaction.mpesa_txt_date = p.MPESA_TRX_DATE + "+03" # date time
 				transaction.mpesa_trx_id = p.MPESA_TRX_ID
@@ -42,14 +41,20 @@ def process_checkout(request):
 
 		if request.META.get('CONTENT_TYPE').lower() == "application/json":
 			#json
-			data = json.loads(request.body)
-			phone = data.get('phone','')
-			amount = data.get('amount',0)
-			api_key = data.get('api_key','')
+			try:
+				data = json.loads(request.body)
+				phone = data.get('phone','')
+				amount = data.get('amount',0)
+				channel = data.get('channel',1)
+				api_key = data.get('api_key','')
+			except Exception as e:
+				return JsonResponse({'status': False, 'desc': "Invalid json string"})
+
 		else:
 			#form
 			phone = request.POST.get('phone','')
 			amount = request.POST.get('amount',0)
+			channel = request.POST.get('channel',1)
 			api_key = request.POST.get('api_key','')
 
 		phone = phone.strip()
@@ -59,7 +64,7 @@ def process_checkout(request):
 		if is_valid_phone(phone) == False:
 			return JsonResponse({'status': False, 'desc': "Invalid phone number"})
 
-		if amount.isnumeric() == False:
+		if isinstance(amount, int) == False and amount.isnumeric() == False:
 			return JsonResponse({'status': False, 'desc': "Invalid amount"})
 
 		if int(amount) < 10:
@@ -81,7 +86,7 @@ def process_checkout(request):
 
 		transaction = None
 		try:
-			transaction = Transaction(vendor=vendor, order_id=1, msisdn=phone, amount=int(amount))
+			transaction = Transaction(vendor=vendor, order_id=1, msisdn=phone, amount=int(amount), channel=int(channel))
 			transaction.save()
 		except Exception as e:
 			logger.error("Error ocurred saving the transaction " + str(e))
@@ -115,17 +120,25 @@ def poll(request):
 		# Get data
 		if request.META.get('CONTENT_TYPE').lower() == "application/json":
 			#json
-			data = json.loads(request.body)
-			trans_id = data.get('trans_id',0)
-			api_key = data.get('api_key','')
+			try:
+				data = json.loads(request.body)
+				trans_id = data.get('trans_id',0)
+				channel = data.get('channel',1)
+				api_key = data.get('api_key','')
+			except Exception as e:
+				return JsonResponse({'status': False, 'desc': "Invalid json string"})
 		else:
 			#form
 			trans_id = request.POST.get('trans_id',0)
+			channel = request.POST.get('channel',1)
 			api_key = request.POST.get('api_key','')
 
 
 		if trans_id == 0 or api_key.strip() == '':
 			return JsonResponse({'status': False, 'desc': "Invalid/missing parameters"})
+
+		if isinstance(trans_id, int) == False and trans_id.isnumeric() == False:
+			return JsonResponse({'status': False, 'desc': "Invalid transaction id"})
 
 		try:
 			vendor = Vendor.objects.get(api_key=api_key)
@@ -142,44 +155,36 @@ def poll(request):
 		elif transaction.trx_status == 1:
 			return JsonResponse({'status': transaction.trx_status, 'desc': transaction.mpesa_desc})
 		else:
-			return JsonResponse({'status': transaction.trx_status, 'desc': "Transaction Pending"})
-	return HttpResponse("GET: Echo back")
+			diff = timezone.make_aware(datetime.datetime.now(), timezone.get_default_timezone()) - transaction.request_time
+			if diff.seconds > 120: # 2 minutes, assume expired
+				return JsonResponse({'status': 1, 'desc': "Transaction expired"})
+			elif diff.seconds > 60: # 1 minute, poll safaricom
+				# check status
+				res = send_status_request(transaction.trx_id)
+				
+				if res[4] == "Pending":
+					return JsonResponse({'status': transaction.trx_status})
 
+				# update transaction
+				transaction.return_code = res[5]
+				transaction.mpesa_desc = res[6]
+				transaction.process_time = timezone.now()
 
-@csrf_exempt
-def demo_checkout(request):
-	if request.method == 'POST':
-		# Get data
-		phone = request.POST.get("phone","")
-		amount = request.POST.get("amount",0)
+				if res[4] == "Success":
+					transaction.mpesa_txt_date = res[2] + "+03" # date time
+					transaction.mpesa_trx_id = res[3]
+					transaction.trx_status = 0
+					transaction.save()
+					return JsonResponse({'status': 0, 'mpesa_code': transaction.mpesa_trx_id})
 
-		url = "https://api.briskpesa.com/v1/checkout"
-		api_key = "490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4"
-		payload = {"phone": phone, "amount": amount, "api_key": api_key}
-		headers = {"Content-Type": "application/json"}
+				elif res[4] == "Failed":
+					transaction.trx_status = 1
+					transaction.save()
+					return JsonResponse({'status': transaction.trx_status, 'desc': transaction.mpesa_desc})
 
-		r = requests.post(url, data=json.dumps(payload), headers=headers)
-		return JsonResponse(json.loads(r.text))
-		
-
-	return HttpResponse("GET: Echo back")
-
-
-@csrf_exempt
-def demo_poll(request):
-	if request.method == 'POST':
-		# Get data
-		trans_id = request.POST.get("trans_id", 0)
-
-		url = 'https://api.briskpesa.com/v1/poll'
-		api_key = '490cc963938029b5510bbf9932d1650ef80a86096b00ae8a0e9b84e6154b64b4'
-		payload = {"trans_id": trans_id, "api_key": api_key}
-		headers = {"Content-Type": "application/json"}
-
-		r = requests.post(url, data=json.dumps(payload), headers=headers)
-		return JsonResponse(json.loads(r.text))
-		
-
+				return JsonResponse({'status': transaction.trx_status})
+			else:
+				return JsonResponse({'status': transaction.trx_status, 'desc': "Transaction Pending"})
 	return HttpResponse("GET: Echo back")
 
 
