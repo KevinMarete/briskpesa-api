@@ -86,3 +86,57 @@ class Transaction(models.Model):
   mpesa_desc = models.CharField(max_length=255)
   request_time = models.DateTimeField(auto_now_add=True)
   process_time = models.DateTimeField(auto_now=True)
+
+
+class TransactionSuccess(models.Model):
+  class Meta:
+      managed = False
+      db_table = 'bp_transaction_success'
+  trans_id = models.IntegerField()
+  vendor = models.ForeignKey(Vendor)
+  order_id = models.CharField(max_length=255)
+  msisdn = models.CharField(max_length=50)
+  amount_paid = models.IntegerField(default=0, null=False)
+  amount_charged = models.DecimalField(max_digits=19, decimal_places=2)
+  amount_available = models.DecimalField(max_digits=19, decimal_places=2)
+  closing_balance = models.DecimalField(max_digits=19, decimal_places=2)
+  trx_status = models.IntegerField(default=-1) # -1 pending, 0 success, 1 failure
+  trx_id = models.CharField(max_length=255)
+  channel = models.IntegerField(default=1) # 1 web, 2 android
+  transaction_desc = models.TextField()
+  mpesa_txt_date = models.DateTimeField()
+  mpesa_trx_id = models.CharField(max_length=50)
+  return_code = models.CharField(max_length=10)
+  mpesa_desc = models.CharField(max_length=255)
+  request_time = models.DateTimeField(auto_now=True)
+  process_time = models.DateTimeField(auto_now=True)
+  charge_time = models.DateTimeField(auto_now_add=True)
+
+
+class TransactionFailed(models.Model):
+  class Meta:
+      managed = False
+      db_table = 'bp_transaction_failed'
+  trans_id = models.IntegerField()
+  vendor = models.ForeignKey(Vendor)
+  order_id = models.CharField(max_length=255)
+  msisdn = models.CharField(max_length=50)
+  amount = models.IntegerField(default=0, null=False)
+  trx_status = models.IntegerField(default=-1) # -1 pending, 0 success, 1 failure
+  trx_id = models.CharField(max_length=255)
+  channel = models.IntegerField(default=1) # 1 web, 2 android
+  transaction_desc = models.TextField()
+  return_code = models.CharField(max_length=10)
+  mpesa_desc = models.CharField(max_length=255)
+  request_time = models.DateTimeField(auto_now=True)
+  process_time = models.DateTimeField(auto_now=True)
+
+
+class Balance(models.Model):
+  class Meta:
+      managed = False
+      db_table = 'bp_balance'
+  id = models.AutoField(primary_key=True)
+  vendor = models.ForeignKey(Vendor)
+  balance = models.DecimalField(max_digits=19, decimal_places=2)
+  last_modified = models.DateTimeField(auto_now_add=True)

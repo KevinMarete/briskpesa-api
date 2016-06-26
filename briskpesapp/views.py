@@ -21,17 +21,21 @@ def onlinecheckout(request):
 		if (request.body != ""):
 			p = parser_process_callback(request.body)
 			# update transaction
-			transaction = Transaction.objects.get(pk=int(p.MERCHANT_TRANSACTION_ID))
-			transaction.return_code = p.RETURN_CODE
-			transaction.mpesa_desc = p.DESCRIPTION
-			transaction.process_time = timezone.now()
-			if p.TRX_STATUS == "Success":
-				transaction.mpesa_txt_date = p.MPESA_TRX_DATE + "+03" # date time
-				transaction.mpesa_trx_id = p.MPESA_TRX_ID
-				transaction.trx_status = 0
-			else:
-				transaction.trx_status = 1
-			transaction.save()
+			try:
+				transaction = Transaction.objects.get(pk=int(p.MERCHANT_TRANSACTION_ID))
+				transaction.return_code = p.RETURN_CODE
+				transaction.mpesa_desc = p.DESCRIPTION
+				transaction.process_time = timezone.now()
+				if p.TRX_STATUS == "Success":
+					transaction.mpesa_txt_date = p.MPESA_TRX_DATE + "+03" # date time
+					transaction.mpesa_trx_id = p.MPESA_TRX_ID
+					transaction.trx_status = 0
+				else:
+					transaction.trx_status = 1
+				transaction.save()
+			except Transaction.DoesNotExist:
+				return HttpResponse("Data received. Updated.")
+
 	return HttpResponse("Data received")
 
 @csrf_exempt
@@ -148,7 +152,16 @@ def poll(request):
 		try:
 			transaction = Transaction.objects.get(pk=int(trans_id), vendor_id=vendor.id)
 		except Transaction.DoesNotExist:
-			return JsonResponse({'status': 2, 'desc': "Transaction does not exist"})
+			# check in fail or succeeded tables
+			try:
+				transaction_success = TransactionSuccess.objects.get(trans_id=int(trans_id), vendor_id=vendor.id)
+				return JsonResponse({'status': 0, 'mpesa_code': transaction_success.mpesa_trx_id})
+			except TransactionSuccess.DoesNotExist:
+				try:
+					transaction_failed = TransactionFailed.objects.get(trans_id=int(trans_id), vendor_id=vendor.id)
+					return JsonResponse({'status': transaction.trx_status, 'desc': transaction_failed.mpesa_desc})
+				except TransactionFailed.DoesNotExist:
+					return JsonResponse({'status': 2, 'desc': "Transaction does not exist"})
 		
 		if transaction.trx_status == 0:
 			return JsonResponse({'status': 0, 'mpesa_code': transaction.mpesa_trx_id})
