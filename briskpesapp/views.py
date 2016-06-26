@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
-from models import Transaction, Vendor
+from models import Transaction, TransactionSuccess, TransactionFailed, Vendor
 from utils import is_valid_phone, sanitize_phone
 import logging
 from django.utils import timezone
@@ -154,12 +154,12 @@ def poll(request):
 		except Transaction.DoesNotExist:
 			# check in fail or succeeded tables
 			try:
-				transaction_success = TransactionSuccess.objects.get(trans_id=int(trans_id), vendor_id=vendor.id)
+				transaction_success = TransactionSuccess.objects.get(pk=int(trans_id), vendor_id=vendor.id)
 				return JsonResponse({'status': 0, 'mpesa_code': transaction_success.mpesa_trx_id})
 			except TransactionSuccess.DoesNotExist:
 				try:
-					transaction_failed = TransactionFailed.objects.get(trans_id=int(trans_id), vendor_id=vendor.id)
-					return JsonResponse({'status': transaction.trx_status, 'desc': transaction_failed.mpesa_desc})
+					transaction_failed = TransactionFailed.objects.get(pk=int(trans_id), vendor_id=vendor.id)
+					return JsonResponse({'status': 1, 'desc': transaction_failed.mpesa_desc})
 				except TransactionFailed.DoesNotExist:
 					return JsonResponse({'status': 2, 'desc': "Transaction does not exist"})
 		

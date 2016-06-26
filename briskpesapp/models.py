@@ -92,7 +92,7 @@ class TransactionSuccess(models.Model):
   class Meta:
       managed = False
       db_table = 'bp_transaction_success'
-  trans_id = models.IntegerField()
+  trans_id = models.IntegerField(primary_key=True)
   vendor = models.ForeignKey(Vendor)
   order_id = models.CharField(max_length=255)
   msisdn = models.CharField(max_length=50)
@@ -117,7 +117,7 @@ class TransactionFailed(models.Model):
   class Meta:
       managed = False
       db_table = 'bp_transaction_failed'
-  trans_id = models.IntegerField()
+  trans_id = models.IntegerField(primary_key=True)
   vendor = models.ForeignKey(Vendor)
   order_id = models.CharField(max_length=255)
   msisdn = models.CharField(max_length=50)
