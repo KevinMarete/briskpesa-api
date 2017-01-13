@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 MERCHANT_ID = "656873"
 PASS_KEY = "12f57a17731e3c4be06836adfbdfe2550dfd440bc8cf3e378415f237ce6494f6"
 CALLBACK_URL = "https://api.briskpesa.com/v1/onlinecheckout"
-MPESA_CHECKOUT_URL = "https://safaricom.co.ke/mpesa_online/lnmo_checkout_server.php?wsdl"
+MPESA_CHECKOUT_URL = "https://www.safaricom.co.ke/mpesa_online/lnmo_checkout_server.php?wsdl"
 #MPESA_CHECKOUT_URL = "http://localhost:8080" # for testing
 
 class ProcessCheckOutResponseHandler(xml.sax.ContentHandler):
@@ -173,13 +173,16 @@ def parser_process_callback(xml_string):
    xml.sax.parseString(xml_string, processCallback)
    return processCallback
 
-def encryptPassword(timestamp):
-  return base64.b64encode(hashlib.sha256(MERCHANT_ID + PASS_KEY + timestamp).hexdigest())
+def encryptPassword(timestamp, vendor):
+  if vendor.owns_paybill:
+    return base64.b64encode(hashlib.sha256(vendor.merchant_id + vendor.pass_key + timestamp).hexdigest())
+  else:
+    return base64.b64encode(hashlib.sha256(MERCHANT_ID + PASS_KEY + timestamp).hexdigest())
 
-def send_payment_request(msisdn, amount, reqid, refid):
+def send_payment_request(msisdn, amount, reqid, refid, vendor):
     # build the xml request
-    xml_string = build_payment_xml(msisdn, reqid, refid, amount)
-    #logger.info("Payment request XML: " + xml_string)
+    xml_string = build_payment_xml(msisdn, reqid, refid, amount, vendor)
+    # logger.info("Payment request XML: " + xml_string)
     xml_resp = ""
     try:
         req = urllib2.Request(url=MPESA_CHECKOUT_URL, data=xml_string, headers={'Content-Type': 'application/xml'})
@@ -198,10 +201,12 @@ def send_payment_request(msisdn, amount, reqid, refid):
     else:
        return -1,
 
-def build_payment_xml(msisdn, transaction_id, reference_id, amount):
+def build_payment_xml(msisdn, transaction_id, reference_id, amount, vendor):
     '''Build the XML file given the template and the parameters'''
     timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    password = encryptPassword(timestamp)
+    password = encryptPassword(timestamp, vendor)
+    merchant_id_param = vendor.merchant_id if vendor.owns_paybill else MERCHANT_ID
+
     XML = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="tns:ns">
         <soapenv:Header>
           <tns:CheckOutHeader>
@@ -223,11 +228,11 @@ def build_payment_xml(msisdn, transaction_id, reference_id, amount):
           </tns:processCheckOutRequest>
         </soapenv:Body>
         </soapenv:Envelope>"""
-    return XML % (MERCHANT_ID, password, timestamp, transaction_id, reference_id, amount, msisdn, CALLBACK_URL, timestamp)
+    return XML % (merchant_id_param, password, timestamp, transaction_id, reference_id, amount, msisdn, CALLBACK_URL, timestamp)
 
-def send_status_request(trx_id):
+def send_status_request(trx_id, vendor):
     # build the xml request
-    xml_string = build_status_xml(trx_id)
+    xml_string = build_status_xml(trx_id, vendor)
     xml_resp = ""
     try:
         req = urllib2.Request(url=MPESA_CHECKOUT_URL, data=xml_string, headers={'Content-Type': 'application/xml'})
@@ -244,10 +249,12 @@ def send_status_request(trx_id):
     else:
        return -1,
 
-def build_status_xml(trx_id):
+def build_status_xml(trx_id, vendor):
     '''Build the XML file given the template and the parameters'''
     timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    password = encryptPassword(timestamp)
+    password = encryptPassword(timestamp, vendor)
+    merchant_id_param = vendor.merchant_id if vendor.owns_paybill else MERCHANT_ID
+
     XML = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="tns:ns">
         <soapenv:Header>
           <tns:CheckOutHeader>
@@ -262,12 +269,12 @@ def build_status_xml(trx_id):
           </tns:transactionStatusRequest>
         </soapenv:Body>
         </soapenv:Envelope>"""
-    return XML % (MERCHANT_ID, password, timestamp, trx_id)
+    return XML % (merchant_id_param, password, timestamp, trx_id)
 
 
-def send_confirm_request(trx_id):
+def send_confirm_request(trx_id, vendor):
     # build the xml request
-    xml_string = build_confirm_xml(trx_id)
+    xml_string = build_confirm_xml(trx_id, vendor)
     #logger.info("Confirm request XML: " + xml_string)
     xml_resp = ""
     try:
@@ -288,10 +295,12 @@ def send_confirm_request(trx_id):
        return -1,
 
 
-def build_confirm_xml(trx_id):
+def build_confirm_xml(trx_id, vendor):
     '''Build the XML file given the template and the parameters'''
     timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    password = encryptPassword(timestamp)
+    password = encryptPassword(timestamp, vendor)
+    merchant_id_param = vendor.merchant_id if vendor.owns_paybill else MERCHANT_ID
+
     XML = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="tns:ns">
         <soapenv:Header>
           <tns:CheckOutHeader>
@@ -306,4 +315,4 @@ def build_confirm_xml(trx_id):
           </tns:transactionConfirmRequest>
         </soapenv:Body>
         </soapenv:Envelope>"""
-    return XML % (MERCHANT_ID, password, timestamp, trx_id)
+    return XML % (merchant_id_param, password, timestamp, trx_id)

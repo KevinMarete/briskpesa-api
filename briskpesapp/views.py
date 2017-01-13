@@ -96,7 +96,7 @@ def process_checkout(request):
 			logger.error("Error ocurred saving the transaction " + str(e))
 			return JsonResponse({'status': False, 'desc': "Error ocurred saving the transaction"})
 
-		res = send_payment_request(phone, amount, transaction.id, vendor.short_name)
+		res = send_payment_request(phone, amount, transaction.id, vendor.short_name, vendor)
 		if res[0] == -1:
 			logger.error("Sending payment request failed " + phone + " " + amount)
 			return JsonResponse({'status': False, 'desc': 'Unknown error'})
@@ -104,7 +104,7 @@ def process_checkout(request):
 	   		logger.info("Checkout response:- return code: " + res[0] + " description: " + res[1] + " transaction id: " + res[2])
 	   		if res[0] == "00":
 	   			transaction.trx_id = res[2]
-				res2 = send_confirm_request(res[2])
+				res2 = send_confirm_request(res[2], vendor)
 				transaction.save()
 				return JsonResponse({'status': True, 'trans_id': transaction.id, 'desc': 'Ok'})
 			else:
@@ -173,7 +173,7 @@ def poll(request):
 				return JsonResponse({'status': 1, 'desc': "Transaction expired"})
 			elif diff.seconds > 60: # 1 minute, poll safaricom
 				# check status
-				res = send_status_request(transaction.trx_id)
+				res = send_status_request(transaction.trx_id, vendor)
 				
 				if res[4] == "Pending":
 					return JsonResponse({'status': transaction.trx_status})
