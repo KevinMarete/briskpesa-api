@@ -1,2 +1,2 @@
 [servers]
-107.170.52.191 ansible_user=andati ansible_ssh_private_key_file=/home/randati/id_dsa
+107.170.52.191 ansible_user=andati ansible_ssh_private_key_file=/home/randati/id_rsa
