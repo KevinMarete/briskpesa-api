@@ -27,8 +27,8 @@ def onlinecheckout(request):
 				transaction.mpesa_desc = p.DESCRIPTION
 				transaction.process_time = timezone.now()
 				if p.TRX_STATUS == "Success":
-					#transaction.mpesa_txt_date = p.MPESA_TRX_DATE + "+03" # date time
-					#transaction.mpesa_trx_id = p.MPESA_TRX_ID
+					transaction.mpesa_txt_date = p.MPESA_TRX_DATE + "+03" # date time
+					transaction.mpesa_trx_id = p.MPESA_TRX_ID
 					transaction.trx_status = 0
 				else:
 					transaction.trx_status = 1
