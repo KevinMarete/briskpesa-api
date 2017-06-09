@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 def onlinecheckout(request):
 	if request.method == 'POST':
 		if (request.body != ""):
+			logger.info("RESULTS: " + request.body)
 			p = parser_process_callback(request.body)
 			# update transaction
 			try:
