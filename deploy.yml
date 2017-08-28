@@ -28,7 +28,7 @@
       django_manage: command=collectstatic app_path={{ install_root }}/{{ project_name }} pythonpath={{ pythonpath }}
 
     - name: copy gunicorn config
-      template: src=files/gunicorn.j2 dest=/etc/init/gunicorn.conf
+      template: src=files/gunicorn.j2 dest=/etc/gunicorn.d/{{ project_name }}.conf
       notify:
       - restart gunicorn
 
