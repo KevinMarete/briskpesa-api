@@ -1,7 +1,7 @@
 CONFIG = {
     'mode': 'wsgi',
     'working_dir': '/srv/{{ project_name }}',
-      'python': '/usr/bin/python',
+      'python': '{{ project_name }}',
     'args': (
         '--bind=127.0.0.1:8000',
         '--workers=3',
